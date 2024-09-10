@@ -84,7 +84,7 @@ async def obtener_productos(token: str = Depends(oauth2_scheme)):
     rows = cursor.fetchall()
     return {"productos": rows}
 
-# Endpoint para obtener métricas
+## Endpoint para obtener métricas
 @app.get("/metricas")
 async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     payload = verificar_token(token)
@@ -93,13 +93,13 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
 
     cursor = conn.cursor()
 
-    # Cantidad de entregas por hora por repartidor
+    # Cantidad de entregas por día por repartidor
     cursor.execute('''
-    SELECT id_repartidor, strftime('%Y-%m-%d %H:00:00', fecha_entrega) as hora, COUNT(*) as entregas
+    SELECT id_repartidor, strftime('%Y-%m-%d', fecha_entrega) as dia, COUNT(*) as entregas
     FROM pedidos
-    GROUP BY id_repartidor, hora
+    GROUP BY id_repartidor, dia
     ''')
-    entregas_por_hora = cursor.fetchall()
+    entregas_por_dia = cursor.fetchall()
 
     # Productos más vendidos
     cursor.execute('''
@@ -118,8 +118,30 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     ''')
     pedidos_por_repartidor = cursor.fetchall()
 
+    # Cantidad total de productos entregados por repartidor
+    cursor.execute('''
+    SELECT id_repartidor, SUM(cantidad) as total_productos_entregados
+    FROM pedidos
+    GROUP BY id_repartidor
+    ''')
+    total_productos_por_repartidor = cursor.fetchall()
+
+    # Día con mayor número de entregas
+    cursor.execute('''
+    SELECT strftime('%Y-%m-%d', fecha_entrega) as dia, COUNT(*) as total_entregas
+    FROM pedidos
+    GROUP BY dia
+    ORDER BY total_entregas DESC
+    LIMIT 1
+    ''')
+    dia_max_entregas = cursor.fetchone()
+
+
+
     return {
-        "entregas_por_hora": entregas_por_hora,
+        "entregas_por_dia": entregas_por_dia,
         "productos_mas_vendidos": productos_mas_vendidos,
-        "pedidos_por_repartidor": pedidos_por_repartidor
+        "pedidos_por_repartidor": pedidos_por_repartidor,
+        "total_productos_por_repartidor": total_productos_por_repartidor,
+        "dia_max_entregas": dia_max_entregas
     }

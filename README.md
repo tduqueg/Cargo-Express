@@ -9,7 +9,65 @@ Esta aplicación permite registrar pedidos y monitorear diferentes métricas sob
 - **Autenticación con Tokens JWT**.
 - Registro de pedidos de productos.
 - Consulta de repartidores y productos.
-- Visualización de métricas de rendimiento (entregas por hora, productos más vendidos, total de pedidos por repartidor).
+- Visualización de métricas de rendimiento (entregas por día, productos más vendidos, total de pedidos por repartidor).
+
+---
+
+## Clonación del Repositorio
+
+Para comenzar, clona el repositorio desde GitHub:
+
+```bash
+git clone https://github.com/tduqueg/Cargo-Express.git
+cd Cargo-Express
+```
+
+## Requisitos del Proyecto
+
+Para ejecutar la aplicación es necesario contar con los siguientes elementos:
+
+- Python 3.8 o superior.
+- FastAPI: Un framework de Python para construir APIs.
+- SQLite3: Base de datos ligera para almacenar los datos de productos, repartidores y pedidos.
+
+### Dependencias
+
+Para instalar las dependencias, es necesario crear un entorno virtual y luego instalar los paquetes indicados en `requirements.txt`.
+
+#### Pasos:
+
+1. Crear un entorno virtual:
+
+```bash
+python -m venv venv
+```
+
+2. Activar el entorno virtual (en Linux o macOS):
+
+```bash
+source venv/bin/activate
+```
+
+3. Instalar las dependencias:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+# Iniciar el Proyecto
+
+Sigue los siguientes pasos para iniciar la aplicación.
+
+1. Asegúrate de haber instalado las dependencias como se mencionó en la sección anterior.
+2. Inicia la aplicación FastAPI con el siguiente comando:
+
+```bash
+uvicorn main:app --reload
+```
+
+## Esto lanzará el servidor en `http://127.0.0.1:8000`.
 
 ## Autenticación
 
@@ -181,17 +239,25 @@ Devuelve un conjunto de métricas relacionadas con las entregas de pedidos.
 
 #### Métricas Devueltas:
 
-1. Cantidad de entregas por hora por repartidor:
+1. **Cantidad de entregas por día por repartidor**:
 
 - Muestra cuántas entregas realizó cada repartidor por cada hora del día.
 
-2. Productos más vendidos:
+2. **Productos más vendidos**:
 
 - Lista de productos ordenados por la cantidad total vendida.
 
-3. Cantidad total de pedidos por repartidor:
+3. **Cantidad total de pedidos por repartidor**:
 
 - Número total de pedidos entregados por cada repartidor.
+
+4. **Cantidad total de productos entregados por repartidor**:
+
+- Número total de productos entregados por cada repartidor.
+
+5. **Día con mayor número de entregas**:
+
+- El día con el mayor número de entregas registradas.
 
 #### Requiere Token:
 
@@ -201,11 +267,14 @@ Sí. Debe incluirse el token JWT en la cabecera de la solicitud.
 
 ```json
 {
-  "entregas_por_hora": [
-    { "id_repartidor": "r1", "hora": "2024-09-09 15:00:00", "entregas": 5 }
+  "entregas_por_dia": [["101", "2024-09-09", 7]],
+  "productos_mas_vendidos": [
+    ["pk0001", 15],
+    ["pk0004", 8]
   ],
-  "productos_mas_vendidos": [{ "id_producto": "p1", "cantidad_vendida": 20 }],
-  "pedidos_por_repartidor": [{ "id_repartidor": "r1", "total_pedidos": 10 }]
+  "pedidos_por_repartidor": [["101", 7]],
+  "total_productos_por_repartidor": [["101", 23]],
+  "dia_max_entregas": ["2024-09-09", 7]
 }
 ```
 
@@ -213,9 +282,9 @@ Sí. Debe incluirse el token JWT en la cabecera de la solicitud.
 
 # Preguntas Teóricas
 
-1. Escalabilidad: Recomendaría utilizar servicios escalables, como bases de datos serverless (DynamoDB o Aurora Serverless) que permiten manejar aumentos en la demanda sin requerir una reconfiguración manual.
-2. Microservicios: Dividir la solución en microservicios para mejorar la capacidad de escalar independientemente cada parte del sistema.
-3. Serverless: Utilizar servicios serverless (como AWS Lambda y API Gateway) para gestionar cargas fluctuantes de manera eficiente.
+1. **Escalabilidad**: Recomendaría utilizar servicios escalables, como bases de datos serverless (DynamoDB o Aurora Serverless) que permiten manejar aumentos en la demanda sin requerir una reconfiguración manual.
+2. **Microservicios**: Dividir la solución en microservicios para mejorar la capacidad de escalar independientemente cada parte del sistema.
+3. **Serverless**: Utilizar servicios serverless (como AWS Lambda y API Gateway) para gestionar cargas fluctuantes de manera eficiente.
 
 ## Capacidad de la solución
 
