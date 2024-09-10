@@ -133,3 +133,90 @@ Sí. Debe incluirse el token JWT en la cabecera de la solicitud.
   ]
 }
 ```
+
+---
+
+# Obtener Productos
+
+### Endpoint
+
+```plaintext
+GET /products
+```
+
+### Descripción:
+
+Devuelve una lista de los productos registrados en la base de datos.
+
+### Requiere Token:
+
+Sí. Debe incluirse el token JWT en la cabecera de la solicitud.
+
+### Respuesta Exitosa:
+
+```json
+{
+  "productos": [
+    { "id_producto": "p1", "nombre": "Producto 1" },
+    { "id_producto": "p2", "nombre": "Producto 2" }
+  ]
+}
+```
+
+---
+
+# Métricas de Monitoreo
+
+## Obtener Métricas de Entregas
+
+### Endpoint
+
+```plaintext
+GET /metricas
+```
+
+#### Descripción:
+
+Devuelve un conjunto de métricas relacionadas con las entregas de pedidos.
+
+#### Métricas Devueltas:
+
+1. Cantidad de entregas por hora por repartidor:
+
+- Muestra cuántas entregas realizó cada repartidor por cada hora del día.
+
+2. Productos más vendidos:
+
+- Lista de productos ordenados por la cantidad total vendida.
+
+3. Cantidad total de pedidos por repartidor:
+
+- Número total de pedidos entregados por cada repartidor.
+
+#### Requiere Token:
+
+Sí. Debe incluirse el token JWT en la cabecera de la solicitud.
+
+#### Ejemplo de Respuesta:
+
+```json
+{
+  "entregas_por_hora": [
+    { "id_repartidor": "r1", "hora": "2024-09-09 15:00:00", "entregas": 5 }
+  ],
+  "productos_mas_vendidos": [{ "id_producto": "p1", "cantidad_vendida": 20 }],
+  "pedidos_por_repartidor": [{ "id_repartidor": "r1", "total_pedidos": 10 }]
+}
+```
+
+---
+
+# Preguntas Teóricas
+
+1. Escalabilidad: Recomendaría utilizar servicios escalables, como bases de datos serverless (DynamoDB o Aurora Serverless) que permiten manejar aumentos en la demanda sin requerir una reconfiguración manual.
+2. Microservicios: Dividir la solución en microservicios para mejorar la capacidad de escalar independientemente cada parte del sistema.
+3. Serverless: Utilizar servicios serverless (como AWS Lambda y API Gateway) para gestionar cargas fluctuantes de manera eficiente.
+
+## Capacidad de la solución
+
+La solución planteada, si se construye con una arquitectura escalable como la basada en microservicios y utilizando recursos serverless, puede soportar el crecimiento proyectado sin necesidad de modificaciones importantes.
