@@ -6,8 +6,9 @@ from fastapi.security import OAuth2PasswordBearer
 from auth import crear_token, verificar_token
 import sqlite3
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+import jwt
 
 app = FastAPI()
 
@@ -17,27 +18,23 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 templates = Jinja2Templates(directory="templates")
 
-# Modelo de datos para los productos
 class Producto(BaseModel):
     id_producto: str
     cantidad: int
 
-# Modelo de datos para los pedidos
 class Pedido(BaseModel):
     productos: list[Producto]
     id_repartidor: str
     fecha_entrega: datetime
 
-# Endpoint para obtener un token 
 @app.post("/token")
 async def login(username: str = Form(...), password: str = Form(...)):
-
     if username == "user1" and password == "password":
         token = crear_token({"sub": username})
         return {"access_token": token}
     else:
         raise HTTPException(status_code=400, detail="Usuario o contraseña incorrectos")
-# Endpoint para registrar pedidos
+
 @app.post("/entrega")
 async def registrar_pedido(pedido: Pedido, token: str = Depends(oauth2_scheme)):
     payload = verificar_token(token)
@@ -46,18 +43,15 @@ async def registrar_pedido(pedido: Pedido, token: str = Depends(oauth2_scheme)):
     
     cursor = conn.cursor()
 
-    # Verificamos la existencia del repartidor en la tabla repartidores
     cursor.execute('SELECT COUNT(*) FROM repartidores WHERE id_repartidor = ?', (pedido.id_repartidor,))
     if cursor.fetchone()[0] == 0:
         raise HTTPException(status_code=400, detail="Repartidor no válido")
 
-    # Verificamos la existencia de cada producto en la tabla productos
     for producto in pedido.productos:
         cursor.execute('SELECT COUNT(*) FROM productos WHERE id_producto = ?', (producto.id_producto,))
         if cursor.fetchone()[0] == 0:
             raise HTTPException(status_code=400, detail=f"Producto {producto.id_producto} no válido")
 
-        # Insertamos cada producto en la base de datos
         fecha_entrega_str = pedido.fecha_entrega.isoformat()
         cursor.execute('''
         INSERT INTO pedidos (id_producto, id_repartidor, cantidad, fecha_entrega)
@@ -67,7 +61,6 @@ async def registrar_pedido(pedido: Pedido, token: str = Depends(oauth2_scheme)):
     conn.commit()
     return {"mensaje": "Pedidos registrados exitosamente", "data": pedido}
 
-# Endpoint para obtener repartidores
 @app.get("/repartidores")
 async def obtener_repartidores(token: str = Depends(oauth2_scheme)):
     payload = verificar_token(token)
@@ -79,7 +72,6 @@ async def obtener_repartidores(token: str = Depends(oauth2_scheme)):
     rows = cursor.fetchall()
     return {"repartidores": rows}
 
-# Endpoint para obtener productos
 @app.get("/productos")
 async def obtener_productos(token: str = Depends(oauth2_scheme)):
     payload = verificar_token(token)
@@ -91,7 +83,6 @@ async def obtener_productos(token: str = Depends(oauth2_scheme)):
     rows = cursor.fetchall()
     return {"productos": rows}
 
-## Endpoint para obtener métricas
 @app.get("/metricas")
 async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     payload = verificar_token(token)
@@ -100,7 +91,6 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
 
     cursor = conn.cursor()
 
-    # Cantidad de entregas por día por repartidor
     cursor.execute('''
     SELECT id_repartidor, strftime('%Y-%m-%d', fecha_entrega) as dia, COUNT(*) as entregas
     FROM pedidos
@@ -108,7 +98,6 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     ''')
     entregas_por_dia = cursor.fetchall()
 
-    # Productos más vendidos
     cursor.execute('''
     SELECT id_producto, SUM(cantidad) as cantidad_vendida
     FROM pedidos
@@ -117,7 +106,6 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     ''')
     productos_mas_vendidos = cursor.fetchall()
 
-    # Cantidad total de pedidos por repartidor
     cursor.execute('''
     SELECT id_repartidor, COUNT(*) as total_pedidos
     FROM pedidos
@@ -125,7 +113,6 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     ''')
     pedidos_por_repartidor = cursor.fetchall()
 
-    # Cantidad total de productos entregados por repartidor
     cursor.execute('''
     SELECT id_repartidor, SUM(cantidad) as total_productos_entregados
     FROM pedidos
@@ -133,7 +120,6 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     ''')
     total_productos_por_repartidor = cursor.fetchall()
 
-    # Día con mayor número de entregas
     cursor.execute('''
     SELECT strftime('%Y-%m-%d', fecha_entrega) as dia, COUNT(*) as total_entregas
     FROM pedidos
@@ -143,8 +129,6 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     ''')
     dia_max_entregas = cursor.fetchone()
 
-
-
     return {
         "entregas_por_dia": entregas_por_dia,
         "productos_mas_vendidos": productos_mas_vendidos,
@@ -153,7 +137,6 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
         "dia_max_entregas": dia_max_entregas
     }
 
-# Endpoint para la aplicación de monitoreo
 @app.get("/monitoreo", response_class=HTMLResponse)
 async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
     payload = verificar_token(token)
@@ -162,7 +145,6 @@ async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
     
     cursor = conn.cursor()
     
-    # Cantidad de entregas por hora por repartidor
     cursor.execute('''
     SELECT id_repartidor, strftime('%H', fecha_entrega) as hora, COUNT(*) as entregas
     FROM pedidos
@@ -170,7 +152,6 @@ async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
     ''')
     entregas_por_hora = cursor.fetchall()
     
-    # Productos más vendidos
     cursor.execute('''
     SELECT p.nombre, SUM(pe.cantidad) as cantidad_vendida
     FROM pedidos pe
@@ -180,7 +161,6 @@ async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
     ''')
     productos_mas_vendidos = cursor.fetchall()
     
-    # Preparar datos para la gráfica de entregas por hora
     repartidores = {}
     for repartidor, hora, entregas in entregas_por_hora:
         if repartidor not in repartidores:
@@ -196,7 +176,6 @@ async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
             "data": entregas
         })
     
-    # Preparar datos para la gráfica de productos más vendidos
     labels_productos = [producto for producto, _ in productos_mas_vendidos]
     data_productos = [cantidad for _, cantidad in productos_mas_vendidos]
     
@@ -214,10 +193,11 @@ async def mostrar_login():
         return HTMLResponse(content=f.read())
 
 @app.post("/login")
-async def procesar_login(username: str = Form(...), password: str = Form(...)):
-    # Validar usuario y contraseña
-    if username == "user1" and password == "password":
-        token = crear_token({"sub": username})
-        return {"access_token": token}
+async def login(username: str = Form(...), password: str = Form(...)):
+    if username == "admin" and password == "password":  
+        token = jwt.encode({"sub": username}, "secret", algorithm="HS256")
+        response = JSONResponse(content={"token": token})
+        response.set_cookie(key="token", value=token) 
+        return response
     else:
-        raise HTTPException(status_code=400, detail="Usuario o contraseña incorrectos")
+        return JSONResponse(content={"error": "Invalid credentials"}, status_code=400)

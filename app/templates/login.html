@@ -9,12 +9,42 @@
       href="https://fonts.googleapis.com/css2?family=Asap:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    <script>
+      async function handleLogin(event) {
+        event.preventDefault();
+
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const response = await fetch("/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            username: username,
+            password: password,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const token = data.token;
+
+          localStorage.setItem("token", token);
+
+          window.location.href = "/monitoreo";
+        } else {
+          alert("Invalid credentials, please try again.");
+        }
+      }
+    </script>
   </head>
   <body class="login-body">
     <div class="login-container">
       <div class="login-content">
         <h2>Welcome Back</h2>
-        <form action="/login" method="post">
+        <form onsubmit="handleLogin(event)">
           <div class="input-group">
             <input type="text" id="username" name="username" required />
             <label for="username">Username</label>
