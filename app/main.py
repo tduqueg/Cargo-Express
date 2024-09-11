@@ -207,3 +207,17 @@ async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
         "labels_productos": labels_productos,
         "data_productos": data_productos
     })
+
+@app.get("/login", response_class=HTMLResponse)
+async def mostrar_login():
+    with open("./templates/login.html") as f:
+        return HTMLResponse(content=f.read())
+
+@app.post("/login")
+async def procesar_login(username: str = Form(...), password: str = Form(...)):
+    # Validar usuario y contraseña
+    if username == "user1" and password == "password":
+        token = crear_token({"sub": username})
+        return {"access_token": token}
+    else:
+        raise HTTPException(status_code=400, detail="Usuario o contraseña incorrectos")
