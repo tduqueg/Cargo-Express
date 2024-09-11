@@ -1,14 +1,21 @@
-from fastapi import FastAPI, HTTPException, Form, Depends
+from fastapi import FastAPI, HTTPException, Form, Depends, Request
 from pydantic import BaseModel
 from datetime import datetime
 from database import conn
 from fastapi.security import OAuth2PasswordBearer
 from auth import crear_token, verificar_token
 import sqlite3
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 app = FastAPI()
 
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+templates = Jinja2Templates(directory="templates")
 
 # Modelo de datos para los productos
 class Producto(BaseModel):
@@ -145,3 +152,58 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
         "total_productos_por_repartidor": total_productos_por_repartidor,
         "dia_max_entregas": dia_max_entregas
     }
+
+# Endpoint para la aplicación de monitoreo
+@app.get("/monitoreo", response_class=HTMLResponse)
+async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
+    payload = verificar_token(token)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Token inválido o expirado")
+    
+    cursor = conn.cursor()
+    
+    # Cantidad de entregas por hora por repartidor
+    cursor.execute('''
+    SELECT id_repartidor, strftime('%H', fecha_entrega) as hora, COUNT(*) as entregas
+    FROM pedidos
+    GROUP BY id_repartidor, hora
+    ''')
+    entregas_por_hora = cursor.fetchall()
+    
+    # Productos más vendidos
+    cursor.execute('''
+    SELECT p.nombre, SUM(pe.cantidad) as cantidad_vendida
+    FROM pedidos pe
+    JOIN productos p ON pe.id_producto = p.id_producto
+    GROUP BY pe.id_producto
+    ORDER BY cantidad_vendida DESC
+    ''')
+    productos_mas_vendidos = cursor.fetchall()
+    
+    # Preparar datos para la gráfica de entregas por hora
+    repartidores = {}
+    for repartidor, hora, entregas in entregas_por_hora:
+        if repartidor not in repartidores:
+            repartidores[repartidor] = {}
+        repartidores[repartidor][hora] = entregas
+    
+    labels_horas = sorted({hora for _, hora, _ in entregas_por_hora})
+    datasets_entregas = []
+    for repartidor, horas in repartidores.items():
+        entregas = [horas.get(hora, 0) for hora in labels_horas]
+        datasets_entregas.append({
+            "label": repartidor,
+            "data": entregas
+        })
+    
+    # Preparar datos para la gráfica de productos más vendidos
+    labels_productos = [producto for producto, _ in productos_mas_vendidos]
+    data_productos = [cantidad for _, cantidad in productos_mas_vendidos]
+    
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "labels_horas": labels_horas,
+        "datasets_entregas": datasets_entregas,
+        "labels_productos": labels_productos,
+        "data_productos": data_productos
+    })
