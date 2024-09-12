@@ -27,13 +27,8 @@
           }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          const token = data.token;
-
-          localStorage.setItem("token", token);
-
-          window.location.href = "/monitoreo";
+        if (response.redirected) {
+          window.location.href = response.url;
         } else {
           alert("Invalid credentials, please try again.");
         }

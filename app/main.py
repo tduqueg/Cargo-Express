@@ -27,9 +27,11 @@ class Pedido(BaseModel):
     id_repartidor: str
     fecha_entrega: datetime
 
+
 @app.post("/token")
-async def login(username: str = Form(...), password: str = Form(...)):
-    if username == "user1" and password == "password":
+async def login_token(username: str = Form(...), password: str = Form(...)):
+    if autenticar_usuario(username, password):
+        # Si el usuario es válido, generar el token
         token = crear_token({"sub": username})
         return {"access_token": token}
     else:
@@ -138,7 +140,12 @@ async def obtener_metricas(token: str = Depends(oauth2_scheme)):
     }
 
 @app.get("/monitoreo", response_class=HTMLResponse)
-async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
+async def monitoreo(request: Request):
+    token = request.cookies.get("token")
+    
+    if not token:
+        raise HTTPException(status_code=401, detail="No se encontró un token")
+
     payload = verificar_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Token inválido o expirado")
@@ -187,17 +194,28 @@ async def monitoreo(request: Request, token: str = Depends(oauth2_scheme)):
         "data_productos": data_productos
     })
 
+# Lógica de autenticación centralizada
+def autenticar_usuario(username: str, password: str):
+    if (username == "user1" and password == "password") or (username == "admin" and password == "password"):
+        return True
+    return False
+    
+# Vista del formulario de login
 @app.get("/login", response_class=HTMLResponse)
 async def mostrar_login():
     with open("./templates/login.html") as f:
         return HTMLResponse(content=f.read())
 
+# Este endpoint maneja el POST del formulario de login y redirige
 @app.post("/login")
-async def login(username: str = Form(...), password: str = Form(...)):
-    if username == "admin" and password == "password":  
-        token = jwt.encode({"sub": username}, "secret", algorithm="HS256")
-        response = JSONResponse(content={"token": token})
-        response.set_cookie(key="token", value=token) 
+async def handle_login(username: str = Form(...), password: str = Form(...)):
+    if autenticar_usuario(username, password):
+        # Si el usuario es válido, generar el token
+        token = crear_token({"sub": username})
+        response = RedirectResponse(url="/monitoreo")  # Redirigir a /monitoreo tras el login
+        response.set_cookie(key="token", value=token)  # Guardar token en la cookie
         return response
     else:
-        return JSONResponse(content={"error": "Invalid credentials"}, status_code=400)
+        raise HTTPException(status_code=400, detail="Usuario o contraseña incorrectos")
+
+

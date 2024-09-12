@@ -1,16 +1,25 @@
 import jwt
 from datetime import datetime, timedelta
+from fastapi import HTTPException
 
-SECRET_KEY = "llave_super_secreta"
+SECRET_KEY = "mi_secreto_super_secreto"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-def crear_token(data:dict):
-    payload = data.copy()
-    payload.update({"exp": datetime.utcnow() + timedelta(minutes=30)})
-    return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+# Función para crear token
+def crear_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
-def verificar_token(token:str):
+# Función para verificar token
+def verificar_token(token: str):
     try:
-        payload = jwt.decode (token, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except jwt.ExpiredSignatureError:
-        return None
+        raise HTTPException(status_code=401, detail="Token expirado")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Token inválido")
