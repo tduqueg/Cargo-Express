@@ -222,32 +222,6 @@ canvas {
   }
 }
 
-.stats-container {
-  display: flex;
-  justify-content: space-between;
-}
-
-.stats-container > div {
-  flex: 1;
-  padding: 10px;
-}
-
-.stats-container h3 {
-  color: var(--primary-color);
-  margin-bottom: 10px;
-  font-size: 1em;
-}
-
-.stats-container ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-.stats-container li {
-  margin-bottom: 5px;
-  font-size: 0.9em;
-}
-
 .chart-container:last-child {
   grid-column: 1 / -1;
 }
