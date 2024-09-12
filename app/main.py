@@ -151,7 +151,7 @@ async def monitoreo(request: Request):
         raise HTTPException(status_code=401, detail="Token inválido o expirado")
     
     cursor = conn.cursor()
-    
+
     cursor.execute('''
     SELECT id_repartidor, strftime('%H', fecha_entrega) as hora, COUNT(*) as entregas
     FROM pedidos
@@ -168,6 +168,38 @@ async def monitoreo(request: Request):
     ''')
     productos_mas_vendidos = cursor.fetchall()
     
+
+    cursor.execute('''
+    SELECT id_repartidor, strftime('%Y-%m-%d', fecha_entrega) as dia, COUNT(*) as entregas
+    FROM pedidos
+    GROUP BY id_repartidor, dia
+    ''')
+    entregas_por_dia = cursor.fetchall()
+
+    cursor.execute('''
+    SELECT id_repartidor, COUNT(*) as total_pedidos
+    FROM pedidos
+    GROUP BY id_repartidor
+    ''')
+    pedidos_por_repartidor = cursor.fetchall()
+
+    cursor.execute('''
+    SELECT id_repartidor, SUM(cantidad) as total_productos_entregados
+    FROM pedidos
+    GROUP BY id_repartidor
+    ''')
+    total_productos_por_repartidor = cursor.fetchall()
+
+    cursor.execute('''
+    SELECT strftime('%Y-%m-%d', fecha_entrega) as dia, COUNT(*) as total_entregas
+    FROM pedidos
+    GROUP BY dia
+    ORDER BY total_entregas DESC
+    LIMIT 1
+    ''')
+    dia_max_entregas = cursor.fetchone()
+    
+
     repartidores = {}
     for repartidor, hora, entregas in entregas_por_hora:
         if repartidor not in repartidores:
@@ -186,12 +218,27 @@ async def monitoreo(request: Request):
     labels_productos = [producto for producto, _ in productos_mas_vendidos]
     data_productos = [cantidad for _, cantidad in productos_mas_vendidos]
     
+
+    labels_dias = sorted(set(dia for _, dia, _ in entregas_por_dia))
+    datasets_entregas_por_dia = []
+    for repartidor in set(r for r, _, _ in entregas_por_dia):
+        entregas = [next((e for r, d, e in entregas_por_dia if r == repartidor and d == dia), 0) for dia in labels_dias]
+        datasets_entregas_por_dia.append({
+            "label": repartidor,
+            "data": entregas
+        })
+    
     return templates.TemplateResponse("index.html", {
         "request": request,
         "labels_horas": labels_horas,
         "datasets_entregas": datasets_entregas,
         "labels_productos": labels_productos,
-        "data_productos": data_productos
+        "data_productos": data_productos,
+        "labels_dias": labels_dias,
+        "datasets_entregas_por_dia": datasets_entregas_por_dia,
+        "pedidos_por_repartidor": pedidos_por_repartidor,
+        "total_productos_por_repartidor": total_productos_por_repartidor,
+        "dia_max_entregas": dia_max_entregas
     })
 
 # Lógica de autenticación centralizada

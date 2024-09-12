@@ -31,77 +31,154 @@
           ventas, útil para la gestión de inventario y estrategias de marketing.
         </p>
       </section>
+
+      <!-- Nuevas secciones para las métricas adicionales -->
+      <section class="chart-container">
+        <h2>Cantidad de Entregas por Día por Repartidor</h2>
+        <canvas id="entregasPorDiaChart"></canvas>
+        <p class="chart-description">
+          Este gráfico muestra la distribución de entregas por día para cada
+          repartidor, permitiendo identificar tendencias a lo largo del tiempo.
+        </p>
+      </section>
+
+      <section class="info-container">
+        <h2>Estadísticas de Repartidores</h2>
+        <div class="info-grid">
+          <div>
+            <h3>Pedidos por Repartidor</h3>
+            <ul id="pedidosPorRepartidor"></ul>
+          </div>
+          <div>
+            <h3>Total de Productos por Repartidor</h3>
+            <ul id="productosPorRepartidor"></ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="info-container">
+        <h2>Día con Más Entregas</h2>
+        <p id="diaMaxEntregas"></p>
+      </section>
     </div>
 
     <script src="/static/js/charts.js"></script>
     <script>
       const labelsHoras = {{ labels_horas | tojson }};
-              const datasetsEntregas = {{ datasets_entregas | tojson }};
+      const datasetsEntregas = {{ datasets_entregas | tojson }};
 
-              const ctxEntregas = document.getElementById('entregasPorHoraChart').getContext('2d');
-              const entregasPorHoraChart = new Chart(ctxEntregas, {
-                  type: 'bar',
-                  data: {
-                      labels: labelsHoras,
-                      datasets: datasetsEntregas.map(ds => ({
-                          label: ds.label,
-                          data: ds.data,
-                          backgroundColor: getRandomColor(),
-                          borderColor: getRandomColor(),
-                          borderWidth: 1
-                      }))
+      const ctxEntregas = document.getElementById('entregasPorHoraChart').getContext('2d');
+      const entregasPorHoraChart = new Chart(ctxEntregas, {
+          type: 'bar',
+          data: {
+              labels: labelsHoras,
+              datasets: datasetsEntregas.map(ds => ({
+                  label: ds.label,
+                  data: ds.data,
+                  backgroundColor: getRandomColor(),
+                  borderColor: getRandomColor(),
+                  borderWidth: 1
+              }))
+          },
+          options: {
+              responsive: true,
+              scales: {
+                  x: {
+                      stacked: true
                   },
-                  options: {
-                      responsive: true,
-                      scales: {
-                          x: {
-                              stacked: true
-                          },
-                          y: {
-                              beginAtZero: true,
-                              stacked: true
-                          }
-                      }
+                  y: {
+                      beginAtZero: true,
+                      stacked: true
                   }
-              });
-
-              // Datos para productos más vendidos
-              const labelsProductos = {{ labels_productos | tojson }};
-              const dataProductos = {{ data_productos | tojson }};
-
-              const ctxProductos = document.getElementById('productosMasVendidosChart').getContext('2d');
-              const productosMasVendidosChart = new Chart(ctxProductos, {
-                  type: 'pie',
-                  data: {
-                      labels: labelsProductos,
-                      datasets: [{
-                          data: dataProductos,
-                          backgroundColor: generateColors(labelsProductos.length),
-                          borderColor: '#fff',
-                          borderWidth: 1
-                      }]
-                  },
-                  options: {
-                      responsive: true
-                  }
-              });
-
-              // Función para generar colores aleatorios
-              function getRandomColor() {
-                  const r = Math.floor(Math.random() * 255);
-                  const g = Math.floor(Math.random() * 255);
-                  const b = Math.floor(Math.random() * 255);
-                  return `rgba(${r}, ${g}, ${b}, 0.6)`;
               }
+          }
+      });
 
-              // Función para generar múltiples colores
-              function generateColors(num) {
-                  const colors = [];
-                  for(let i = 0; i < num; i++) {
-                      colors.push(getRandomColor());
+      // Datos para productos más vendidos
+      const labelsProductos = {{ labels_productos | tojson }};
+      const dataProductos = {{ data_productos | tojson }};
+
+      const ctxProductos = document.getElementById('productosMasVendidosChart').getContext('2d');
+      const productosMasVendidosChart = new Chart(ctxProductos, {
+          type: 'pie',
+          data: {
+              labels: labelsProductos,
+              datasets: [{
+                  data: dataProductos,
+                  backgroundColor: generateColors(labelsProductos.length),
+                  borderColor: '#fff',
+                  borderWidth: 1
+              }]
+          },
+          options: {
+              responsive: true
+          }
+      });
+
+      const labelsDias = {{ labels_dias | tojson }};
+      const datasetsEntregasPorDia = {{ datasets_entregas_por_dia | tojson }};
+
+      const ctxEntregasPorDia = document.getElementById('entregasPorDiaChart').getContext('2d');
+      const entregasPorDiaChart = new Chart(ctxEntregasPorDia, {
+          type: 'line',
+          data: {
+              labels: labelsDias,
+              datasets: datasetsEntregasPorDia.map(ds => ({
+                  label: ds.label,
+                  data: ds.data,
+                  borderColor: getRandomColor(),
+                  fill: false
+              }))
+          },
+          options: {
+              responsive: true,
+              scales: {
+                  y: {
+                      beginAtZero: true
                   }
-                  return colors;
               }
+          }
+      });
+
+      // Función para generar colores aleatorios
+      function getRandomColor() {
+          const r = Math.floor(Math.random() * 255);
+          const g = Math.floor(Math.random() * 255);
+          const b = Math.floor(Math.random() * 255);
+          return `rgba(${r}, ${g}, ${b}, 0.6)`;
+      }
+
+      // Función para generar múltiples colores
+      function generateColors(num) {
+          const colors = [];
+          for(let i = 0; i < num; i++) {
+              colors.push(getRandomColor());
+          }
+          return colors;
+      }
+
+      // Llenar las listas de pedidos y productos por repartidor
+      const pedidosPorRepartidor = {{ pedidos_por_repartidor | tojson }};
+      const productosPorRepartidor = {{ total_productos_por_repartidor | tojson }};
+      const pedidosList = document.getElementById('pedidosPorRepartidor');
+      const productosList = document.getElementById('productosPorRepartidor');
+
+      pedidosPorRepartidor.forEach(([repartidor, total]) => {
+          const li = document.createElement('li');
+          li.textContent = `Repartidor ${repartidor}: ${total} pedidos`;
+          pedidosList.appendChild(li);
+      });
+
+      productosPorRepartidor.forEach(([repartidor, total]) => {
+          const li = document.createElement('li');
+          li.textContent = `Repartidor ${repartidor}: ${total} productos`;
+          productosList.appendChild(li);
+      });
+
+      // Mostrar el día con más entregas
+      const diaMaxEntregas = {{ dia_max_entregas | tojson }};
+      const diaMaxEntregasP = document.getElementById('diaMaxEntregas');
+      diaMaxEntregasP.textContent = `El día con más entregas fue ${diaMaxEntregas[0]} con ${diaMaxEntregas[1]} entregas.`;
     </script>
   </body>
 </html>
