@@ -1,22 +1,22 @@
 from fastapi import FastAPI, HTTPException, Form, Depends, Request
 from pydantic import BaseModel
 from datetime import datetime
-from database import conn
+from app.database import conn
 from fastapi.security import OAuth2PasswordBearer
-from auth import crear_token, verificar_token
+from app.auth import crear_token, verificar_token
 import sqlite3
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-import jwt
+from mangum import Mangum
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="app/templates")
 
 class Producto(BaseModel):
     id_producto: str
@@ -250,7 +250,7 @@ def autenticar_usuario(username: str, password: str):
 # Vista del formulario de login
 @app.get("/login", response_class=HTMLResponse)
 async def mostrar_login():
-    with open("./templates/login.html") as f:
+    with open("app/templates/login.html") as f:
         return HTMLResponse(content=f.read())
 
 # Este endpoint maneja el POST del formulario de login y redirige
@@ -266,3 +266,4 @@ async def handle_login(username: str = Form(...), password: str = Form(...)):
         raise HTTPException(status_code=400, detail="Usuario o contraseña incorrectos")
 
 
+handler = Mangum(app)
