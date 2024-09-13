@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from mangum import Mangum
+from typing import List
 
 app = FastAPI()
 
@@ -23,7 +24,7 @@ class Producto(BaseModel):
     cantidad: int
 
 class Pedido(BaseModel):
-    productos: list[Producto]
+    productos: List[Producto]
     id_repartidor: str
     fecha_entrega: datetime
 

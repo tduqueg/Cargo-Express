@@ -1,20 +1,14 @@
-# Base image with Python
-FROM python:3.11-slim
+# Base image para Lambda con Python 3.8
+FROM public.ecr.aws/lambda/python:3.8
 
-# Set the working directory inside the container
-WORKDIR /app
+# Copiar el archivo de requerimientos a /var/task (directorio por defecto de Lambda)
+COPY requirements.txt /var/task/
 
-# Copy requirements file
-COPY requirements.txt .
+# Instalar las dependencias en /var/task (sin caché)
+RUN pip install --no-cache-dir -r /var/task/requirements.txt --target /var/task/
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copiar todo el contenido de la aplicación a /var/task/
+COPY . /var/task/
 
-# Copy the entire app directory
-COPY . /app
-
-# Expose the port FastAPI will run on
-EXPOSE 8000
-
-# Command to run the FastAPI app using Uvicorn, especificando la carpeta 'app'
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Comando para Lambda (asegúrate de que 'main.py' contiene un handler llamado 'handler')
+CMD ["app.main.handler"]
