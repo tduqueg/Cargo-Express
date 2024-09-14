@@ -8,3 +8,5 @@ cargo-express-api/
 package/
 dependencies/
 .env
+cargo_express.db
+init_data.py
