@@ -203,5 +203,6 @@ Con un crecimiento del 500% el primer año y el doble en el segundo, la solució
 ## Diagramas
 
 ### Diagrama de Arquitectura: Representa la interacción entre los componentes de AWS.
+![ArquitecturaCargoExpress](https://github.com/user-attachments/assets/409cc6ef-4308-41af-baa1-2007ed87e652)
 
-### Diagrama de Flujo de Datos: Muestra cómo fluye la información entre el usuario, Lambda y RDS.
+
