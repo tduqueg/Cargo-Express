@@ -2,3 +2,9 @@ env/
 __pycache__/
 function.zip
 app/lambda_layer/
+node_modules/
+cargo-express-api/
+.serverless/
+package/
+dependencies/
+.env
